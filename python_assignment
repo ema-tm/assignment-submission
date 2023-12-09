@@ -1,0 +1,71 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import matplotlib.pyplot as plt
+import re
+
+# Providing the URL of the website that will be scrapped
+url = 'https://bonatti.mk/%D0%96%D0%B5%D0%BD%D0%B8-%D0%90%D0%9A%D0%A6%D0%98%D0%88%D0%90-%D0%B4%D0%BE-40.html'
+
+# Fetching the HTML content from the URL
+response = requests.get(url)
+
+# Checking if the request was successful (status code 200)
+if response.status_code == 200:
+    html_content = response.content
+
+    # Creating a BeautifulSoup object to parse the HTML
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # Finding all the elements containing the product information
+    products = soup.find_all('div', class_='col-6 col-md-4 col-xl-3')
+
+    # Initializing lists to store the product details
+    product_names = []
+    product_prices = []
+    product_with_discount = []
+
+    # Extracting the information for each product
+    for product in products:
+        # Getting the product name
+        name = product.find('a', class_='item-title').text.strip()
+        product_names.append(name)
+
+        # Getting the product price
+        price = product.find('span', class_='old-price').text.strip()
+        
+        original_price = price
+        new_price_remove_text = ",00 ДЕН"
+
+        modified_price = re.sub(re.escape(new_price_remove_text), '', original_price)
+        product_prices.append(modified_price)
+
+
+        # print(modified_price)
+
+        # Getting the product price with discount
+        discount = product.find('span', class_='new-price').text.strip()
+        product_with_discount.append(discount)
+        
+    # Creating a DataFrame to store the extracted data
+    data = {
+        'Product Name': product_names,
+        'Price': product_prices,
+        'Discount': product_with_discount
+    }
+
+    df = pd.DataFrame(data)
+
+    print(df)
+
+    # Visualization of the discounted price vs Price using a scatter plot
+    plt.figure(figsize=(12, 10))
+    plt.scatter(df['Price'], df['Discount'], alpha=0.5)
+    plt.title('Product Discount vs Price')
+    plt.xlabel('Price (ден)')
+    plt.ylabel('Discounted Price')
+    plt.grid(True)
+    plt.show()
+
+else:
+    print('Failed to retrieve the webpage')
